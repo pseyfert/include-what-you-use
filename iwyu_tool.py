@@ -25,6 +25,75 @@ import sys
 import json
 import argparse
 import subprocess
+import re
+from multiprocessing import Pool
+
+
+def iwyu_formatter(output):
+    """ Process iwyu's output, basically a no-op. """
+    print('\n'.join(output))
+
+
+CORRECT_RE = re.compile(r'^\((.*?) has correct #includes/fwd-decls\)$')
+SHOULD_ADD_RE = re.compile(r'^(.*?) should add these lines:$')
+SHOULD_REMOVE_RE = re.compile(r'^(.*?) should remove these lines:$')
+FULL_LIST_RE = re.compile(r'The full include-list for (.*?):$')
+END_RE = re.compile(r'^---$')
+LINES_RE = re.compile(r'^- (.*?)  // lines ([0-9]+)-[0-9]+$')
+
+
+GENERAL, ADD, REMOVE, LIST = range(4)
+
+
+def clang_formatter(output):
+    """ Process iwyu's output into something clang-like. """
+    state = (GENERAL, None)
+    for line in output:
+        match = CORRECT_RE.match(line)
+        if match:
+            print('%s:1:1: note: #includes/fwd-decls are correct' % match.groups(1))
+            continue
+        match = SHOULD_ADD_RE.match(line)
+        if match:
+            state = (ADD, match.group(1))
+            continue
+        match = SHOULD_REMOVE_RE.match(line)
+        if match:
+            state = (REMOVE, match.group(1))
+            continue
+        match = FULL_LIST_RE.match(line)
+        if match:
+            state = (LIST, match.group(1))
+        elif END_RE.match(line):
+            state = (GENERAL, None)
+        elif not line.strip():
+            continue
+        elif state[0] == GENERAL:
+            print(line)
+        elif state[0] == ADD:
+            print('%s:1:1: error: add the following line' % state[1])
+            print(line)
+        elif state[0] == REMOVE:
+            match = LINES_RE.match(line)
+            line_no = match.group(2) if match else '1'
+            print('%s:%s:1: error: remove the following line' % (state[1], line_no))
+            print(match.group(1))
+
+
+DEFAULT_FORMAT = 'iwyu'
+FORMATTERS = {
+    'iwyu': iwyu_formatter,
+    'clang': clang_formatter
+}
+
+def get_output(cwd, command):
+    """ Run the given command and return its output as a string. """
+    process = subprocess.Popen(command,
+                               cwd=cwd,
+                               shell=True,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT)
+    return process.communicate()[0].decode("utf-8").splitlines()
 
 
 def run_iwyu(cwd, compile_command, iwyu_args, verbose):
@@ -43,10 +112,10 @@ def run_iwyu(cwd, compile_command, iwyu_args, verbose):
     if verbose:
         print('%s:' % command)
 
-    return subprocess.call(command, cwd=cwd, shell=True)
+    return get_output(cwd, command)
 
 
-def main(compilation_db_path, source_files, verbose, iwyu_args):
+def main(compilation_db_path, source_files, verbose, formatter, iwyu_args):
     """ Entry point. """
     # Canonicalize compilation database path
     if os.path.isdir(compilation_db_path):
@@ -61,6 +130,10 @@ def main(compilation_db_path, source_files, verbose, iwyu_args):
     # Read compilation db from disk
     with open(compilation_db_path, 'r') as fileobj:
         compilation_db = json.load(fileobj)
+
+    # expand symlinks
+    for entry in compilation_db:
+        entry['file'] = os.path.realpath(entry['file'])
 
     # Cross-reference source files with compilation database
     source_files = [os.path.realpath(s) for s in source_files]
@@ -81,9 +154,22 @@ def main(compilation_db_path, source_files, verbose, iwyu_args):
 
     # Run analysis
     try:
+
+        pool = Pool()
+        # results doesn't contain actual results, it serves exception handeling
+        # https://stackoverflow.com/a/28660669
+        results = []
         for entry in entries:
             cwd, compile_command = entry['directory'], entry['command']
-            run_iwyu(cwd, compile_command, iwyu_args, verbose)
+            results.append(pool.apply_async(run_iwyu,
+                                            (cwd, compile_command, iwyu_args, verbose),
+                                            callback = formatter
+                                           )
+                          )
+        pool.close()
+        pool.join()
+        for r in results:
+            r.get()
     except OSError as why:
         print('ERROR: Failed to launch include-what-you-use: %s' % why)
         return 1
@@ -123,6 +209,9 @@ def _bootstrap():
 
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Print IWYU commands')
+    parser.add_argument('-o', '--output-format', type=str,
+                        choices=FORMATTERS.keys(), default=DEFAULT_FORMAT,
+                        help='Output format (default: %s)' % DEFAULT_FORMAT)
     parser.add_argument('-p', metavar='<build-path>', required=True,
                         help='Compilation database path', dest='dbpath')
     parser.add_argument('source', nargs='*',
@@ -132,14 +221,15 @@ def _bootstrap():
     def partition_args(argv):
         """ Split around '--' into driver args and IWYU args. """
         try:
-            dd = argv.index('--')
-            return argv[:dd], argv[dd+1:]
+            double_dash = argv.index('--')
+            return argv[:double_dash], argv[double_dash+1:]
         except ValueError:
             return argv, []
-
     argv, iwyu_args = partition_args(sys.argv[1:])
     args = parser.parse_args(argv)
-    sys.exit(main(args.dbpath, args.source, args.verbose, iwyu_args))
+
+    sys.exit(main(args.dbpath, args.source, args.verbose,
+                  FORMATTERS[args.output_format], iwyu_args))
 
 
 if __name__ == '__main__':
