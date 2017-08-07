@@ -86,10 +86,13 @@ FORMATTERS = {
     'clang': clang_formatter
 }
 
+
 def get_output(cwd, command):
     """ Run the given command and return its output as a string. """
+    lookup_path = os.path.dirname(__file__) + ':' + os.environ['PATH']
     process = subprocess.Popen(command,
                                cwd=cwd,
+                               env={'PATH': lookup_path},
                                shell=True,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT)
