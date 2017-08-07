@@ -106,7 +106,7 @@ def run_iwyu(cwd, compile_command, iwyu_args, verbose):
         clang_args = []
 
     iwyu_args = ['-Xiwyu ' + a for a in iwyu_args]
-    command = ['include-what-you-use'] + clang_args + iwyu_args
+    command = [os.path.join(os.path.dirname(__file__),'include-what-you-use')] + clang_args + iwyu_args
     command = '%s %s' % (' '.join(command), args.strip())
 
     if verbose:
