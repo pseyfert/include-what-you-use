@@ -86,10 +86,21 @@ FORMATTERS = {
     'clang': clang_formatter
 }
 
+
 def get_output(cwd, command):
     """ Run the given command and return its output as a string. """
+    # https://stackoverflow.com/a/4453495
+    # do not alter the current environment,
+    # but copy all of it for the child process,
+    # then prepend the directory of iwyu_tool.py to PATH
+    env = os.environ.copy()
+    try:
+        env["PATH"] = os.path.dirname(__file__) + os.pathsep + env["PATH"]
+    except KeyError:
+        env["PATH"] = os.path.dirname(__file__)
     process = subprocess.Popen(command,
                                cwd=cwd,
+                               env=env,
                                shell=True,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT)
