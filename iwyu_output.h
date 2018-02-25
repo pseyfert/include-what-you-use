@@ -69,7 +69,8 @@ class OneUse {
   const string& decl_filepath() const { return decl_filepath_; }
   clang::SourceLocation use_loc() const { return use_loc_; }
   bool is_full_use() const { return use_kind_ == kFullUse; }
-  bool in_cxx_method_body() const { return in_cxx_method_body_; }
+  bool in_cxx_method_body() const { return (use_flags_ & UF_InCxxMethodBody); }
+  bool is_function_being_defined() const { return (use_flags_ & UF_FunctionDfn); }
   const string& comment() const { return comment_; }
   bool ignore_use() const { return ignore_use_; }
   bool is_iwyu_violation() const { return is_iwyu_violation_; }
