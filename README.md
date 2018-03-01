@@ -1,3 +1,7 @@
+# DISCLAIMER
+
+this is pseyfert's fork for use in https://gitlab.cern.ch/lhcb/Gaudi/merge_requests/103
+
 # Include What You Use #
 
 This README was generated on 2016-02-01 00:55:37 UTC.
