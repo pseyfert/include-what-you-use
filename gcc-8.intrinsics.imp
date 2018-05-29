@@ -1,6 +1,5 @@
-# based on the #error pragmas in the header files below
-# based on their version in gcc 8.1.0
-# backwards compatibility tested ongcc 4.8.4, 4.9.3, 6.2.0, 7.3.0
+# These mappings based on #error pragmas in the header files below in gcc 8.1.0
+# backwards compatibility tested on gcc 4.8.4, 4.9.3, 6.2.0, 7.3.0
 [
    { include: ["<adxintrin.h>", private, "<x86intrin.h>", public ] },
    { include: ["<avx2intrin.h>", private, "<immintrin.h>", public ] },

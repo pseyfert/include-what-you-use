@@ -1,5 +1,4 @@
-# based on the #error pragmas in the header files below
-# based on their version in clang 6.0.0
+# These mappings based on #error pragmas in the header files below in clang 6.0.0
 [
    { include: ["<adxintrin.h>", private, "<immintrin.h>", public ] },
    { include: ["<avx2intrin.h>", private, "<immintrin.h>", public ] },
