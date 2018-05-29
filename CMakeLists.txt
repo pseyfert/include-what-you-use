@@ -28,6 +28,31 @@ include_directories(
   ${CLANG_INCLUDE_DIRS}
   )
 
+message(STATUS "exists")
+get_target_property(clang_binary clang IMPORTED_LOCATION_RELEASE)
+message(STATUS "clang is installed to ${clang_binary}")
+get_filename_component(clang_binary_dir ${clang_binary} DIRECTORY)
+get_filename_component(clang_install_prefix ${clang_binary_dir} DIRECTORY)
+get_filename_component(clang_real_install_prefix ${clang_install_prefix} REALPATH)
+get_filename_component(this_install_prefix ${CMAKE_INSTALL_PREFIX} REALPATH)
+message(STATUS "compate ${this_install_prefix} to ${clang_real_install_prefix}")
+if(NOT (${this_install_prefix} STREQUAL ${clang_real_install_prefix}))
+  message(STATUS "need to fix headers")
+  message(STATUS "clang would look for its headers in ${clang_real_install_prefix}/lib/clang/${LLVM_VERSION}/include")
+  message(STATUS "iwyu thus needs the headers in ${CMAKE_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION}/include")
+  if(EXISTS ${CMAKE_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION}/include)
+    message(STATUS "somebody already did it for us")
+  else()
+    message(STATUS "work to do")
+    install(DIRECTORY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION})
+    install(CODE "
+    EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E create_symlink ${clang_real_install_prefix}/lib/clang/${LLVM_VERSION}/include ${CMAKE_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION}/include)
+    ")
+  endif()
+else()
+  message(STATUS "all fine")
+endif()
+
 add_llvm_executable(include-what-you-use
   iwyu.cc
   iwyu_ast_util.cc
