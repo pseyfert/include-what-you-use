@@ -89,11 +89,10 @@ FORMATTERS = {
 
 def get_output(cwd, command):
     """ Run the given command and return its output as a string. """
-    # The environment dictionary handling taken from
-    # https://stackoverflow.com/a/4453495 .
-    # The constraints are: Do not alter the current environment, instead copy
-    # all of it for the child process, then prepend the directory of
-    # iwyu_tool.py to PATH.
+    # Environment dictionary handling from https://stackoverflow.com/a/4453495
+    # ensures that: The current environment is not altered, instead it is
+    # copied for the child process, then the directory of iwyu_tool.py is
+    # prepended to the PATH variable.
     env = os.environ.copy()
     path_variable = os.path.dirname(__file__)
     if 'PATH' in env:
