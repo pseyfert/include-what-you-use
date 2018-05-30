@@ -28,14 +28,13 @@ include_directories(
   ${CLANG_INCLUDE_DIRS}
   )
 
-message(STATUS "exists")
-get_target_property(clang_binary clang IMPORTED_LOCATION_RELEASE)
+get_target_property(clang_binary clang LOCATION)
 message(STATUS "clang is installed to ${clang_binary}")
 get_filename_component(clang_binary_dir ${clang_binary} DIRECTORY)
 get_filename_component(clang_install_prefix ${clang_binary_dir} DIRECTORY)
 get_filename_component(clang_real_install_prefix ${clang_install_prefix} REALPATH)
 get_filename_component(this_install_prefix ${CMAKE_INSTALL_PREFIX} REALPATH)
-message(STATUS "compate ${this_install_prefix} to ${clang_real_install_prefix}")
+message(STATUS "compare ${this_install_prefix} to ${clang_real_install_prefix}")
 if(NOT (${this_install_prefix} STREQUAL ${clang_real_install_prefix}))
   message(STATUS "need to fix headers")
   message(STATUS "clang would look for its headers in ${clang_real_install_prefix}/lib/clang/${LLVM_VERSION}/include")
