@@ -973,8 +973,8 @@ bool IwyuPreprocessorInfo::BelongsToMainCompilationUnit(
   // currently sometimes called with a nullptr main_file_.
   if (!includee)
     return false;
-  if (GetCanonicalName(GetFilePath(includee)) ==
-      GetCanonicalName(GetFilePath(main_file_)))
+  if (GetCanonicalName(Basename(GetFilePath(includee))) ==
+      GetCanonicalName(Basename(GetFilePath(main_file_))))
     return true;
   // Heuristic: if the main compilation unit's *first* include is
   // a file with the same basename, assume that it's the 'associated'
