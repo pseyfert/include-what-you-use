@@ -118,7 +118,8 @@ def run_iwyu(dbentry, iwyu_args, verbose):
         clang_args = []
 
     iwyu_args = ['-Xiwyu ' + a for a in iwyu_args]
-    command = ['include-what-you-use'] + clang_args + iwyu_args
+    command = [os.path.join(os.path.dirname(__file__),'include-what-you-use')] + clang_args + iwyu_args
+    # command = ['include-what-you-use'] + clang_args + iwyu_args
     command = '%s %s' % (' '.join(command), compile_args.strip())
 
     if verbose:
